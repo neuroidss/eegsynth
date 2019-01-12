@@ -1,1 +1,0 @@
-= EEGsynth interface

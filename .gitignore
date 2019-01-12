@@ -1,11 +1,17 @@
 # Misc files
 bin/buffer
 bin/openbci2ft
+bin/jaga2ft
+bin/gtec2ft
+bin/ft2audio
 dump.rdb
 interface/node_modules
 *.pid
 *.log
 *.pyc
+*.edf
+*.tsv
+.DS_Store
 
 # Backup files
 *.m~
@@ -46,3 +52,6 @@ interface/node_modules
 
 # Debug files
 *.dSYM/
+
+# PyCharm project
+.idea/*

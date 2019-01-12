@@ -1,76 +1,55 @@
-#! /bin/sh
+#!/bin/bash
+#
+# This will start the REDIS server according to the settings
+# in the specified or the default inifile.
+#
+# Use as
+#   redis.sh [-i <inifile>] [-h] [-v]
 
-PATH=/sbin:/bin:/usr/bin
+# include library with helper functions
+. "$(dirname "$0")/../../lib/EEGsynth.sh"
 
 DIR=`dirname "$0"`
 NAME=`basename "$0" .sh`
+BINDIR=$DIR/../../bin
 
-# helper files are stored in the directory containing this script
-PIDFILE="$DIR"/"$NAME".pid
-LOGFILE="$DIR"/"$NAME".log
-INIFILE="$DIR"/"$NAME".ini
+# set the default
+VERBOSE=notice
+
 if [ -e "/usr/bin/redis-server" ]; then
   # on raspberry pi
   COMMAND="/usr/bin/redis-server"
+  CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
 else
   # on maci64
-  COMMAND="/opt/local/bin/redis-server"
+  COMMAND=`which redis-server`
+  CONFIG=`echo $COMMAND | sed s/bin/etc/g | sed s/-server/\.conf/g`
 fi
 
-log_action_msg () {
-  echo $* 1>&1
-}
+while getopts "hvd" option; do
+  case "${option}" in
+    d)
+      VERBOSE=debug
+      ;;
+    v)
+      VERBOSE=verbose
+      ;;
+    h)
+      echo "Use as: $0 [-h] [-v]"
+      ;;
+    \?)
+      echo "Invalid option: -${OPTARG}" >&2
+      ;;
+  esac
+done
 
-log_action_err () {
-  echo $* 1>&2
-}
+# debug (a lot of information, useful for development/testing)
+# verbose (many rarely useful info, but not a mess like the debug level)
+# notice (moderately verbose, what you want in production probably)
+# warning (only very important / critical messages are logged)
 
-check_running_process () {
-  if [ ! -f "$PIDFILE" ]; then
-    return 1
-  else
-    kill -0 `cat "$PIDFILE"` 2> /dev/null
-    return $?
-  fi
-}
+echo COMMAND=$COMMAND
+echo CONFIG=$CONFIG
+echo VERBOSE=$VERBOSE
 
-do_start () {
-  log_action_msg "Starting $NAME"
-  check_running_process && log_action_err "Error: $NAME is already started" && exit 1
-  # start the process in the background
-  ( "$COMMAND" > "$LOGFILE" ) &
-  echo $! > "$PIDFILE"
-}
-
-do_stop () {
-  log_action_msg "Stopping $NAME"
-  check_running_process || log_action_err "Error: $NAME is already stopped"
-  check_running_process || exit 1
-  kill -9 `cat "$PIDFILE"`
-  rm "$PIDFILE"
-}
-
-do_status () {
-  check_running_process && YESNO=" " || YESNO=" not "
-  log_action_msg "$NAME is${YESNO}running"
-}
-
-case "$1" in
-  start)
-        do_start
-        ;;
-  restart)
-        check_running_process && do_stop
-        do_start
-        ;;
-  stop)
-        do_stop
-        ;;
-  status)
-        do_status
-        ;;
-  *)
-        echo "Usage: $0 start|stop|restart|status" >&2
-        exit 3
-        ;;
-esac
+${COMMAND} ${CONFIG} --loglevel $VERBOSE --protected-mode no
